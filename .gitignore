@@ -1,0 +1,17 @@
+# Dependencias
+node_modules/
+
+# Logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# Directorio de compilación temporal (se conserva entregable-wordpress/ listo para instalar)
+dist/
+
+# Archivos de entorno y sistema
+.env
+.env.local
+.DS_Store
+Thumbs.db

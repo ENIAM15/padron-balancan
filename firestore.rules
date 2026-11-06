@@ -1,0 +1,12 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Colección pública del Padrón de Beneficiarios de Balancán
+    // Lectura pública (Transparencia Art. 76 Fracc. XV), Escritura restringida a cuentas TIC no anónimas
+    match /artifacts/{appId}/public/data/padron_beneficiarios/{docId} {
+      allow read: if true;
+      allow create, update, delete: if request.auth != null
+        && request.auth.token.firebase.sign_in_provider != 'anonymous';
+    }
+  }
+}
