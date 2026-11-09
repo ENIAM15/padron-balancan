@@ -6,6 +6,7 @@ import {
   PERIODOS,
   TIPOS_APOYO
 } from '../../utils/catalogos';
+import { normalizarTexto } from '../../utils/texto';
 
 export default function FiltrosPadron({
   registros,
@@ -42,8 +43,8 @@ export default function FiltrosPadron({
           </button>
 
           {DIRECCIONES.map((dir) => {
-            const count = registros.filter((r) => r.direccion === dir.nombre).length;
-            const activo = tabDireccion === dir.nombre;
+            const count = registros.filter((r) => normalizarTexto(r.direccion) === normalizarTexto(dir.nombre)).length;
+            const activo = normalizarTexto(tabDireccion) === normalizarTexto(dir.nombre);
             return (
               <button
                 key={dir.id}

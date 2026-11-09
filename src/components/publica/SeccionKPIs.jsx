@@ -9,6 +9,7 @@ import {
   PieChart
 } from 'lucide-react';
 import { DIRECCIONES } from '../../utils/catalogos';
+import { normalizarTexto } from '../../utils/texto';
 
 export default function SeccionKPIs({ kpis, registros, tabDireccion, setTabDireccion }) {
   return (
@@ -55,10 +56,10 @@ export default function SeccionKPIs({ kpis, registros, tabDireccion, setTabDirec
               Direcciones Participantes
             </p>
             <p className="text-3xl font-extrabold text-slate-900 mt-1">
-              {kpis.direccionesUnicas} <span className="text-sm font-normal text-slate-500">de 5</span>
+              {kpis.direccionesUnicas} <span className="text-sm font-normal text-slate-500">de {DIRECCIONES.length}</span>
             </p>
             <p className="text-xs text-slate-500 mt-1">
-              DIF, Mujer, DECUR, Desarrollo, Agro
+              DIF, Mujer, Atn. Ciudadana, DECUR, Desarrollo, Agro
             </p>
           </div>
           <div className="w-12 h-12 rounded-xl bg-rose-50 flex items-center justify-center text-[#7C1334]">
@@ -69,13 +70,13 @@ export default function SeccionKPIs({ kpis, registros, tabDireccion, setTabDirec
         <div className="bg-white rounded-xl p-5 shadow-xs border border-slate-200 border-l-4 border-l-emerald-600 flex items-center justify-between">
           <div>
             <p className="text-xs font-bold uppercase tracking-wider text-slate-500">
-              Apoyos Directos Económicos
+              Inversión Social Total
             </p>
             <p className="text-2xl font-extrabold text-slate-900 mt-1">
               ${kpis.inversionTotal.toLocaleString('es-MX', { minimumFractionDigits: 2 })}
             </p>
             <p className="text-xs text-slate-500 mt-1">
-              Equidad: {kpis.porcentajeMujeres}% Mujeres beneficiadas
+              Apoyos Económicos y Especie Valorizada
             </p>
           </div>
           <div className="w-12 h-12 rounded-xl bg-emerald-50 flex items-center justify-center text-emerald-700">
@@ -94,29 +95,40 @@ export default function SeccionKPIs({ kpis, registros, tabDireccion, setTabDirec
             </h2>
             <span className="text-xs text-slate-500">Actualizado en tiempo real</span>
           </div>
-          <div className="grid grid-cols-1 sm:grid-cols-5 gap-2.5">
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2.5">
             {DIRECCIONES.map((dir) => {
-              const cant = registros.filter((r) => r.direccion === dir.nombre).length;
-              const pct = registros.length > 0 ? Math.round((cant / registros.length) * 100) : 0;
+              const cant = registros.filter((r) => normalizarTexto(r.direccion) === normalizarTexto(dir.nombre)).length;
+              const rawPct = registros.length > 0 ? (cant / registros.length) * 100 : 0;
+              // 1 decimal de precisión para evitar distorsión de redondeo (ej. 101%)
+              const pctTexto =
+                rawPct === 0
+                  ? '0%'
+                  : rawPct % 1 === 0
+                  ? `${rawPct}%`
+                  : `${rawPct.toFixed(1)}%`;
+
               return (
                 <button
                   key={dir.id}
                   onClick={() => setTabDireccion(dir.nombre)}
+                  title={`${dir.nombre}: ${cant} beneficiarios (${pctTexto})`}
                   className={`text-left p-2.5 rounded-lg border transition ${
-                    tabDireccion === dir.nombre
+                    normalizarTexto(tabDireccion) === normalizarTexto(dir.nombre)
                       ? 'bg-rose-50/70 border-[#7C1334] ring-1 ring-[#7C1334]'
                       : 'bg-slate-50 border-slate-200 hover:bg-slate-100'
                   }`}
                 >
-                  <div className="text-xs font-bold text-slate-800 truncate">{dir.nombre}</div>
+                  <div className="text-xs font-bold text-slate-800 truncate" title={dir.nombre}>
+                    {dir.nombre}
+                  </div>
                   <div className="flex items-baseline justify-between mt-1">
                     <span className="text-lg font-extrabold text-[#7C1334]">{cant}</span>
-                    <span className="text-[11px] font-semibold text-slate-500">{pct}%</span>
+                    <span className="text-[11px] font-semibold text-slate-500">{pctTexto}</span>
                   </div>
                   <div className="w-full bg-slate-200 h-1.5 rounded-full mt-1.5 overflow-hidden">
                     <div
                       className="bg-[#7C1334] h-full rounded-full transition-all duration-300"
-                      style={{ width: `${pct}%` }}
+                      style={{ width: `${Math.min(100, rawPct)}%` }}
                     />
                   </div>
                 </button>

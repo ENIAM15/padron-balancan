@@ -22,6 +22,7 @@ export default function PanelAdmin({
   datosCSVPrevia,
   onConfirmarImportacion,
   onCargarDatosSemilla,
+  onVaciarPadron,
   onIniciarEdicion,
   onSolicitarEliminacion,
   bitacoraSeguridad,
@@ -128,6 +129,7 @@ export default function PanelAdmin({
         <TablaAdminPadron
           registros={registros}
           onCargarDatosSemilla={onCargarDatosSemilla}
+          onVaciarPadron={onVaciarPadron}
           onIniciarEdicion={onIniciarEdicion}
           onSolicitarEliminacion={onSolicitarEliminacion}
         />

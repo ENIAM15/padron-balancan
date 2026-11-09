@@ -170,7 +170,14 @@ export default function PortalPadronBalancan() {
         .then((r) => r.json())
         .then((data) => {
           if (Array.isArray(data.registros)) {
-            setRegistros(data.registros);
+            const normalizados = data.registros.map((r) => {
+              const dNorm = normalizarTexto(r.direccion || '');
+              if (dNorm.includes('AGROPECUARIO') || dNorm.includes('FOMENTO')) {
+                return { ...r, direccion: 'Fomento Económico' };
+              }
+              return r;
+            });
+            setRegistros(normalizados);
           }
         })
         .catch((err) => {
@@ -188,7 +195,19 @@ export default function PortalPadronBalancan() {
         if (guardados) {
           const parsed = JSON.parse(guardados);
           if (Array.isArray(parsed) && parsed.length > 0) {
-            setRegistros(parsed);
+            const migrados = parsed.map((r) => {
+              const dNorm = normalizarTexto(r.direccion || '');
+              if (dNorm.includes('AGROPECUARIO') || dNorm.includes('FOMENTO')) {
+                return { ...r, direccion: 'Fomento Económico' };
+              }
+              return r;
+            });
+            setRegistros(migrados);
+            try {
+              localStorage.setItem(STORAGE_PADRON_LOCAL_KEY, JSON.stringify(migrados));
+            } catch {
+              // Ignorar
+            }
             setCargando(false);
             return;
           }
@@ -334,12 +353,63 @@ export default function PortalPadronBalancan() {
     }
   };
 
+  const vaciarPadronCompleto = async () => {
+    if (!verificarPermisoEscritura()) return;
+    setCargando(true);
+    try {
+      const wpConfig = obtenerConfigWordPress();
+      if (wpConfig && wpConfig.restUrl) {
+        await fetch(`${wpConfig.restUrl}/vaciar`, {
+          method: 'POST',
+          headers: {
+            'X-WP-Nonce': wpConfig.nonce || '',
+            Authorization: `Bearer ${sesionActiva?.token || ''}`
+          }
+        });
+      }
+
+      if (modoOffline || !db || !user) {
+        setRegistros([]);
+        try {
+          localStorage.setItem(STORAGE_PADRON_LOCAL_KEY, JSON.stringify([]));
+        } catch {
+          // Ignorar
+        }
+      } else {
+        const batch = writeBatch(db);
+        registros.forEach((reg) => {
+          const docRef = doc(db, 'artifacts', appId, 'public', 'data', 'padron_beneficiarios', reg.id);
+          batch.delete(docRef);
+        });
+        await batch.commit();
+        setRegistros([]);
+      }
+
+      registrarAuditoria(
+        'VACIAR_PADRON_PRODUCCION',
+        'Se vació la base de datos completa para inicio en cero.',
+        'alerta'
+      );
+
+      mostrarMensaje(
+        'Padrón Vaciado',
+        'La base de datos ha quedado en 0 registros (limpia para producción).',
+        'exito'
+      );
+    } catch (error) {
+      console.error('Error al vaciar padrón:', error);
+      mostrarMensaje('Error', 'No se pudo vaciar la base de datos.', 'error');
+    } finally {
+      setCargando(false);
+    }
+  };
+
   // ==========================================
   // 2. CÁLCULOS EN TIEMPO REAL Y FILTRADO
   // ==========================================
   const registrosFiltrados = useMemo(() => {
     return registros.filter((reg) => {
-      if (tabDireccion !== 'TODAS' && reg.direccion !== tabDireccion) return false;
+      if (tabDireccion !== 'TODAS' && normalizarTexto(reg.direccion) !== normalizarTexto(tabDireccion)) return false;
       if (filtroLocalidad !== 'TODAS' && reg.localidad !== filtroLocalidad) return false;
       if (filtroPeriodo !== 'TODOS' && reg.periodo !== filtroPeriodo) return false;
       if (filtroTipoApoyo !== 'TODOS' && reg.tipoApoyo !== filtroTipoApoyo) return false;
@@ -441,8 +511,7 @@ export default function PortalPadronBalancan() {
       localidad: formBeneficiario.localidad,
       tipoApoyo: formBeneficiario.tipoApoyo,
       montoEspecie: normalizarTexto(formBeneficiario.montoEspecie),
-      montoNumerico:
-        formBeneficiario.tipoApoyo === 'Económico' ? Number(formBeneficiario.montoNumerico) || 0 : 0,
+      montoNumerico: Number(formBeneficiario.montoNumerico) || 0,
       protegido: Boolean(formBeneficiario.protegido),
       fechaActualizacion: new Date().toISOString()
     };
@@ -574,14 +643,14 @@ export default function PortalPadronBalancan() {
   // ==========================================
   // 4. VALIDADOR INTELIGENTE DE ARCHIVOS CSV (AUDITORÍA ITAIP)
   // ==========================================
-  const procesarArchivoCSV = (e) => {
+  const procesarArchivoCSV = (e, opciones = {}) => {
     if (!verificarPermisoEscritura()) return;
     const file = e.target.files?.[0];
     if (!file) return;
 
     const reader = new FileReader();
     reader.onload = (evento) => {
-      const resultado = analizarContenidoCSV(evento.target.result, file.name);
+      const resultado = analizarContenidoCSV(evento.target.result, file.name, opciones);
       if (resultado.error) {
         mostrarMensaje('Archivo Vacío', resultado.error, 'alerta');
         return;
@@ -783,6 +852,14 @@ export default function PortalPadronBalancan() {
             datosCSVPrevia={datosCSVPrevia}
             onConfirmarImportacion={confirmarImportacionMasiva}
             onCargarDatosSemilla={cargarDatosSemilla}
+            onVaciarPadron={() =>
+              setModalConfirmacion({
+                titulo: '¿Vaciar Todo el Padrón Municipal?',
+                mensaje:
+                  'Esta acción eliminará TODOS los registros almacenados en la base de datos y dejará el portal en 0 beneficiarios listo para iniciar en producción. ¿Desea continuar?',
+                accion: vaciarPadronCompleto
+              })
+            }
             onIniciarEdicion={iniciarEdicion}
             onSolicitarEliminacion={(reg) =>
               setModalConfirmacion({

@@ -63,33 +63,28 @@ class Padron_Beneficiarios_Balancan_WP {
 
         require_once ABSPATH . 'wp-admin/includes/upgrade.php';
         dbDelta($sql);
-
-        // Insertar los 16 registros semilla si la tabla está vacía
-        $count = (int) $wpdb->get_var("SELECT COUNT(*) FROM {$this->table_name}");
-        if ($count === 0) {
-            $this->insertar_semillas_iniciales();
-        }
+        // La tabla se crea limpia para producción (0 registros).
     }
 
     private function insertar_semillas_iniciales() {
         global $wpdb;
         $semillas = array(
-            array('seed-1', 'BAL-DIF-001', '2026 - T3', 'DIF Municipal', 'APOYO ALIMENTARIO A GRUPOS VULNERABLES', 'PEREZ', 'LOPEZ', 'MARIA DEL CARMEN', 'M', 'Villa El Triunfo', 'Especie', '1 CANASTA BASICA NUTRICIONAL', 0, 0),
-            array('seed-2', 'BAL-DIF-002', '2026 - T3', 'DIF Municipal', 'APARATOS FUNCIONALES Y ORTOPEDICOS', 'DOMINGUEZ', 'CHABLE', 'JOSE MANUEL', 'H', 'Cabecera Municipal (Balancán)', 'Especie', '1 SILLA DE RUEDAS ESTANDAR', 0, 0),
+            array('seed-1', 'BAL-DIF-001', '2026 - T3', 'DIF Municipal', 'APOYO ALIMENTARIO A GRUPOS VULNERABLES', 'PEREZ', 'LOPEZ', 'MARIA DEL CARMEN', 'M', 'Villa El Triunfo', 'Especie', '1 CANASTA BASICA NUTRICIONAL', 650, 0),
+            array('seed-2', 'BAL-DIF-002', '2026 - T3', 'DIF Municipal', 'APARATOS FUNCIONALES Y ORTOPEDICOS', 'DOMINGUEZ', 'CHABLE', 'JOSE MANUEL', 'H', 'Cabecera Municipal (Balancán)', 'Especie', '1 SILLA DE RUEDAS ESTANDAR', 3200, 0),
             array('seed-3', 'BAL-IAM-001', '2026 - T3', 'Atención a la Mujer', 'REFUGIO Y ASISTENCIA INTEGRAL PREVENTIVA', 'GONZALEZ', 'MENDEZ', 'LAURA ELENA', 'M', 'Villa Quetzalcóatl', 'Económico', '$2,500.00 MXN', 2500, 1),
-            array('seed-4', 'BAL-IAM-002', '2026 - T3', 'Atención a la Mujer', 'MUJERES EMPRENDEDORAS DE BALANCAN', 'HERNANDEZ', 'CRUZ', 'ROSAURA', 'M', 'Poblado Mactún', 'Especie', '1 KIT DE INSUMOS DE REPOSTERIA', 0, 0),
+            array('seed-4', 'BAL-IAM-002', '2026 - T3', 'Atención a la Mujer', 'MUJERES EMPRENDEDORAS DE BALANCAN', 'HERNANDEZ', 'CRUZ', 'ROSAURA', 'M', 'Poblado Mactún', 'Especie', '1 KIT DE INSUMOS DE REPOSTERIA', 1500, 0),
             array('seed-5', 'BAL-DEC-001', '2026 - T3', 'DECUR', 'BECAS AL TALENTO DEPORTIVO Y CULTURAL', 'GOMEZ', 'SANCHEZ', 'JUAN CARLOS', 'H', 'Cabecera Municipal (Balancán)', 'Económico', '$1,500.00 MXN', 1500, 0),
-            array('seed-6', 'BAL-DEC-002', '2026 - T3', 'DECUR', 'EQUIPAMIENTO DEPORTIVO COMUNITARIO', 'LANDERO', 'CHAN', 'CARLOS MARIO', 'H', 'Poblado San Pedro', 'Especie', '1 LOTE DE BALONES Y REDES DEPORTIVAS', 0, 0),
-            array('seed-7', 'BAL-DES-001', '2026 - T2', 'Desarrollo Municipal', 'MEJORAMIENTO DE VIVIENDA DIGNA', 'RAMIREZ', 'TORRES', 'LUCIA', 'M', 'Ranchería El Águila', 'Especie', '10 LAMINAS DE ZINC Y CEMENTO', 0, 0),
+            array('seed-6', 'BAL-DEC-002', '2026 - T3', 'DECUR', 'EQUIPAMIENTO DEPORTIVO COMUNITARIO', 'LANDERO', 'CHAN', 'CARLOS MARIO', 'H', 'Poblado San Pedro', 'Especie', '1 LOTE DE BALONES Y REDES DEPORTIVAS', 2200, 0),
+            array('seed-7', 'BAL-DES-001', '2026 - T2', 'Desarrollo Municipal', 'MEJORAMIENTO DE VIVIENDA DIGNA', 'RAMIREZ', 'TORRES', 'LUCIA', 'M', 'Ranchería El Águila', 'Especie', '10 LAMINAS DE ZINC Y CEMENTO', 4500, 0),
             array('seed-8', 'BAL-DES-002', '2026 - T3', 'Desarrollo Municipal', 'IMPULSO AL AUTOEMPLEO LOCAL', 'MORALES', 'JIMENEZ', 'PEDRO PABLO', 'H', 'Poblado Multé', 'Económico', '$3,000.00 MXN', 3000, 0),
-            array('seed-9', 'BAL-AGR-001', '2026 - T3', 'Fomento Agropecuario', 'INSUMOS AGRICOLAS Y SEMILLA MEJORADA', 'BAUTISTA', 'MAY', 'CANDELARIO', 'H', 'Poblado Netzahualcóyotl (Santa Ana)', 'Especie', '2 BULTOS DE SEMILLA DE MAIZ CERTIFICADA', 0, 0),
-            array('seed-10', 'BAL-AGR-002', '2026 - T2', 'Fomento Agropecuario', 'APOYO A PEQUEÑOS PRODUCTORES GANADEROS', 'ZACARIAS', 'LOPEZ', 'VICTORIANO', 'H', 'Ejido Capitán Felipe Castellanos', 'Económico', '$4,000.00 MXN', 4000, 0),
-            array('seed-11', 'BAL-AGR-003', '2026 - T3', 'Fomento Agropecuario', 'HUERTOS FAMILIARES SUSTENTABLES', 'CAMBRANO', 'DIAZ', 'JUANA FRANCISCA', 'M', 'Ranchería Leona Vicario', 'Capacitación / Servicio', 'TALLER TECNICO Y PAQUETE DE SEMILLAS HORTICOLAS', 0, 0),
-            array('seed-12', 'BAL-DIF-003', '2026 - T2', 'DIF Municipal', 'DESAYUNOS ESCOLARES PRIMERA INFANCIA', 'CORNELIO', 'VALENCIA', 'MARTHA PATRICIA', 'M', 'Ejido General Luis Felipe Domínguez', 'Especie', 'DOTACION MENSUAL DESAYUNO CALIENTE', 0, 0),
+            array('seed-9', 'BAL-FOM-001', '2026 - T3', 'Fomento Económico', 'INSUMOS AGRICOLAS Y SEMILLA MEJORADA', 'BAUTISTA', 'MAY', 'CANDELARIO', 'H', 'Poblado Netzahualcóyotl (Santa Ana)', 'Especie', '2 BULTOS DE SEMILLA DE MAIZ CERTIFICADA', 2600, 0),
+            array('seed-10', 'BAL-FOM-002', '2026 - T2', 'Fomento Económico', 'APOYO A PEQUEÑOS PRODUCTORES GANADEROS', 'ZACARIAS', 'LOPEZ', 'VICTORIANO', 'H', 'Ejido Capitán Felipe Castellanos', 'Económico', '$4,000.00 MXN', 4000, 0),
+            array('seed-11', 'BAL-FOM-003', '2026 - T3', 'Fomento Económico', 'HUERTOS FAMILIARES SUSTENTABLES', 'CAMBRANO', 'DIAZ', 'JUANA FRANCISCA', 'M', 'Ranchería Leona Vicario', 'Capacitación / Servicio', 'TALLER TECNICO Y PAQUETE DE SEMILLAS HORTICOLAS', 0, 0),
+            array('seed-12', 'BAL-DIF-003', '2026 - T2', 'DIF Municipal', 'DESAYUNOS ESCOLARES PRIMERA INFANCIA', 'CORNELIO', 'VALENCIA', 'MARTHA PATRICIA', 'M', 'Ejido General Luis Felipe Domínguez', 'Especie', 'DOTACION MENSUAL DESAYUNO CALIENTE', 450, 0),
             array('seed-13', 'BAL-IAM-003', '2026 - T2', 'Atención a la Mujer', 'ASESORIA JURIDICA Y PSICOLOGICA INTEGRAL', 'VAZQUEZ', 'PERALTA', 'ANA SOFIA', 'M', 'Cabecera Municipal (Balancán)', 'Capacitación / Servicio', 'ACOMPAÑAMIENTO LEGAL INTEGRAL', 0, 1),
             array('seed-14', 'BAL-DEC-003', '2026 - T2', 'DECUR', 'IMPULSO A ARTESANOS Y CULTURA MAYA', 'PECH', 'DZIB', 'TEODORA', 'M', 'Poblado Mactún', 'Económico', '$2,000.00 MXN', 2000, 0),
             array('seed-15', 'BAL-DES-003', '2026 - T3', 'Desarrollo Municipal', 'PROGRAMA DE BACHEO Y EMPLEO TEMPORAL', 'CASTILLO', 'MENDOZA', 'ROBERTO', 'H', 'Villa El Triunfo', 'Económico', '$1,800.00 MXN', 1800, 0),
-            array('seed-16', 'BAL-AGR-004', '2026 - T3', 'Fomento Agropecuario', 'FOMENTO APICOLA Y MELIFERO', 'OSORIO', 'GARCIA', 'RIGOBERTO', 'H', 'Ejido Apatzingán', 'Especie', '3 NUCLEOS DE ABEJAS REINAS Y CAJAS', 0, 0)
+            array('seed-16', 'BAL-FOM-004', '2026 - T3', 'Fomento Económico', 'FOMENTO APICOLA Y MELIFERO', 'OSORIO', 'GARCIA', 'RIGOBERTO', 'H', 'Ejido Apatzingán', 'Especie', '3 NUCLEOS DE ABEJAS REINAS Y CAJAS', 3800, 0)
         );
 
         foreach ($semillas as $s) {
@@ -184,6 +179,12 @@ class Padron_Beneficiarios_Balancan_WP {
         register_rest_route('padron-balancan/v1', '/lote', array(
             'methods'             => 'POST',
             'callback'            => array($this, 'api_importar_lote'),
+            'permission_callback' => array($this, 'verificar_token_tic')
+        ));
+
+        register_rest_route('padron-balancan/v1', '/vaciar', array(
+            'methods'             => 'POST',
+            'callback'            => array($this, 'api_vaciar_padron'),
             'permission_callback' => array($this, 'verificar_token_tic')
         ));
     }
@@ -356,6 +357,12 @@ class Padron_Beneficiarios_Balancan_WP {
         }
 
         return $this->api_obtener_registros();
+    }
+
+    public function api_vaciar_padron() {
+        global $wpdb;
+        $wpdb->query("TRUNCATE TABLE {$this->table_name}");
+        return new WP_REST_Response(array('exito' => true, 'registros' => array()), 200);
     }
 }
 

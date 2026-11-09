@@ -5,6 +5,7 @@ import { obtenerEstiloDireccion } from '../../utils/texto';
 export default function TablaAdminPadron({
   registros,
   onCargarDatosSemilla,
+  onVaciarPadron,
   onIniciarEdicion,
   onSolicitarEliminacion
 }) {
@@ -16,15 +17,21 @@ export default function TablaAdminPadron({
             Control General de Registros en Base de Datos ({registros.length})
           </h3>
           <p className="text-xs text-slate-500">
-            Desde aquí el Departamento de TIC puede editar cualquier registro, activar o desactivar protección de identidad o recargar los datos semilla.
+            Desde aquí el Departamento de TIC puede editar cualquier registro, activar o desactivar protección de identidad, recargar datos o vaciar para producción.
           </p>
         </div>
-        <div className="flex gap-2">
+        <div className="flex flex-wrap gap-2">
           <button
             onClick={onCargarDatosSemilla}
-            className="px-3.5 py-2 rounded-lg bg-slate-800 hover:bg-slate-900 text-white text-xs font-bold flex items-center gap-1.5"
+            className="px-3.5 py-2 rounded-lg bg-slate-800 hover:bg-slate-900 text-white text-xs font-bold flex items-center gap-1.5 transition"
           >
             <RefreshCw className="w-3.5 h-3.5" /> Restaurar Datos Semilla Balancán
+          </button>
+          <button
+            onClick={onVaciarPadron}
+            className="px-3.5 py-2 rounded-lg bg-rose-700 hover:bg-rose-800 text-white text-xs font-bold flex items-center gap-1.5 transition shadow-xs"
+          >
+            <Trash2 className="w-3.5 h-3.5" /> Vaciar Padrón (Iniciar en 0)
           </button>
         </div>
       </div>
@@ -75,7 +82,14 @@ export default function TablaAdminPadron({
                   )}
                 </td>
                 <td className="py-2.5 px-3 text-slate-600">{reg.localidad}</td>
-                <td className="py-2.5 px-3 font-semibold">{reg.montoEspecie}</td>
+                <td className="py-2.5 px-3 font-semibold text-slate-800">
+                  <div>{reg.montoEspecie}</div>
+                  {Number(reg.montoNumerico) > 0 && (
+                    <div className="text-[11px] text-emerald-700 font-normal">
+                      ${Number(reg.montoNumerico).toLocaleString('es-MX', { minimumFractionDigits: 2 })}
+                    </div>
+                  )}
+                </td>
                 <td className="py-2.5 px-4 text-right whitespace-nowrap space-x-1.5">
                   <button
                     onClick={() => onIniciarEdicion(reg)}

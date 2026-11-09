@@ -123,7 +123,17 @@ export default function TablaPadronPublico({
                       </span>
                     </td>
                     <td className="py-3 px-4 text-xs font-bold text-slate-800">
-                      {reg.montoEspecie}
+                      <div>{reg.montoEspecie}</div>
+                      {Number(reg.montoNumerico) > 0 && reg.tipoApoyo !== 'Económico' && (
+                        <div className="text-[11px] font-semibold text-emerald-700 mt-0.5">
+                          Valor est.: ${Number(reg.montoNumerico).toLocaleString('es-MX', { minimumFractionDigits: 2 })} MXN
+                        </div>
+                      )}
+                      {reg.tipoApoyo === 'Capacitación / Servicio' && (!reg.montoNumerico || Number(reg.montoNumerico) === 0) && (
+                        <div className="text-[10px] text-slate-400 font-normal italic mt-0.5">
+                          Servicio público institucional
+                        </div>
+                      )}
                     </td>
                   </tr>
                 ))

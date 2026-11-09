@@ -15,14 +15,16 @@ export const normalizarTexto = (texto) => {
 
 // Estilo auxiliar para obtener el badge de cada dirección
 export const obtenerEstiloDireccion = (nombreDir) => {
-  const encontrada = DIRECCIONES.find((d) => d.nombre === nombreDir);
+  const norm = normalizarTexto(nombreDir || '');
+  const encontrada = DIRECCIONES.find((d) => normalizarTexto(d.nombre) === norm);
   return encontrada ? encontrada.color : 'bg-gray-100 text-gray-800 border-gray-300';
 };
 
 // Generador automático de folio por Dirección Municipal
 export const generarFolioAutomatico = (direccionNombre, registros = []) => {
-  const dirObj = DIRECCIONES.find((d) => d.nombre === direccionNombre) || DIRECCIONES[0];
-  const existentesDir = registros.filter((r) => r.direccion === direccionNombre);
+  const norm = normalizarTexto(direccionNombre || '');
+  const dirObj = DIRECCIONES.find((d) => normalizarTexto(d.nombre) === norm) || DIRECCIONES[0];
+  const existentesDir = registros.filter((r) => normalizarTexto(r.direccion) === norm);
   const consecutivo = String(existentesDir.length + 1).padStart(3, '0');
   return `BAL-${dirObj.prefijo}-${consecutivo}`;
 };

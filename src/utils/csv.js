@@ -1,6 +1,48 @@
 import { DIRECCIONES } from './catalogos';
 import { normalizarTexto } from './texto';
 import { sanitizarCeldaCSV } from './seguridad';
+import { DATOS_ATENCION_CIUDADANA_CEMENTO } from './datosAtencionCiudadana';
+
+// Normalizador inteligente de localidades del Municipio de Balancán
+export const normalizarLocalidadBalancan = (comunidadRaw) => {
+  if (!comunidadRaw) return 'Cabecera Municipal (Balancán)';
+  const u = normalizarTexto(comunidadRaw);
+
+  if (
+    u.includes('CABECERA') ||
+    u.includes('SAN JOAQUIN') ||
+    u.includes('GUADALUPE CABECERA') ||
+    u.includes('BRIGADA') ||
+    u.includes('FLORES')
+  ) {
+    return 'Cabecera Municipal (Balancán)';
+  }
+  if (u.includes('HULERIA')) return 'Poblado Hulería';
+  if (u.includes('MACTUN')) return 'Poblado Mactún';
+  if (u.includes('NETZAHUALCOYOTL') || u.includes('SANTA ANA')) {
+    return 'Poblado Netzahualcóyotl (Santa Ana)';
+  }
+  if (u.includes('AGRICULTORES')) return 'Ejido Agricultores 1ra Sección';
+  if (u.includes('ANEXO')) return 'Ejido Anexo Balancán';
+  if (u.includes('APATZINGAN')) return 'Ejido Apatzingán';
+  if (u.includes('CHACABITA')) return 'Ejido Chacabita';
+  if (u.includes('JAHUACTAL')) return 'Ejido Jahuactal';
+  if (u.includes('PALMAS')) return 'Ejido Las Palmas';
+  if (u.includes('SAN JUAN')) return 'Ejido San Juan';
+  if (u.includes('VICENTE GUERRERO')) return 'Ejido Vicente Guerrero';
+  if (u.includes('ARENAL')) return 'Poblado Arenal';
+  if (u.includes('MULTE')) return 'Poblado Multé';
+  if (u.includes('TRIUNFO')) return 'Villa El Triunfo';
+  if (u.includes('OJO DE AGUA')) return 'Ejido Ojo de Agua';
+  if (u.includes('PLAN DE GUADALUPE')) return 'Col. Plan de Guadalupe';
+  if (u.includes('SAN PEDRO')) return 'Poblado San Pedro';
+  if (u.includes('QUETZALCOATL')) return 'Villa Quetzalcóatl';
+  if (u.includes('LEONA VICARIO')) return 'Ranchería Leona Vicario';
+  if (u.includes('MISSICAB')) return 'Ranchería Missicab';
+  if (u.includes('CONSTITUCION')) return 'Ejido Constitución';
+
+  return sanitizarCeldaCSV(comunidadRaw);
+};
 
 export const exportarDatosAbiertosCSV = (registrosFiltrados, tabDireccion, mostrarMensaje) => {
   if (registrosFiltrados.length === 0) {
@@ -72,6 +114,7 @@ export const descargarPlantillaOficialDirecciones = (mostrarMensaje) => {
   ];
 
   const ejemplos = [
+    '2026 - T1,Atención Ciudadana,ENTREGA DE CEMENTO,ORDOÑEZ,DEHESA,ROSA BEATRIZ,M,Cabecera Municipal (Balancán),Especie,PAQUETE DE CEMENTO,1800,NO',
     '2026 - T3,DIF Municipal,APOYO ALIMENTARIO,GARCIA,LOPEZ,MARIA LUISA,M,Villa El Triunfo,Especie,1 DESPENSA BASICA,0,NO',
     '2026 - T3,DECUR,ESTIMULO DEPORTIVO MUNICIPAL,HERNANDEZ,PEREZ,JOSE ALBERTO,H,Cabecera Municipal (Balancán),Económico,$1500.00 MXN,1500,NO',
     '2026 - T3,Atención a la Mujer,APOYO INTEGRAL PREVENTIVO,MARTINEZ,CRUZ,ELENA,M,Poblado Mactún,Económico,$2000.00 MXN,2000,SI'
@@ -94,50 +137,189 @@ export const descargarPlantillaOficialDirecciones = (mostrarMensaje) => {
   );
 };
 
-export const analizarContenidoCSV = (texto, nombreArchivo) => {
-  const lineas = texto.split(/\r\n|\n/).filter((l) => l.trim() !== '');
+/**
+ * PARSER INTELIGENTE DE ARCHIVOS CSV/EXCEL
+ * - Compatible con la plantilla oficial TIC y con formatos libres de Direcciones (ej. Atención Ciudadana)
+ * - Identifica y bloquea automáticamente columnas prohibidas (CURP, INE, Calle, CP, etc.)
+ */
+export const analizarContenidoCSV = (texto, nombreArchivo, opciones = {}) => {
+  const lineas = texto.split(/\r\n|\n/).map((l) => l.trim()).filter((l) => l.length > 0);
   if (lineas.length < 2) {
     return { error: 'El archivo CSV no contiene filas de datos válidas.' };
   }
 
-  const cabecerasRaw = lineas[0].split(',').map((h) => normalizarTexto(h.replace(/"/g, '')));
+  // 1. Detectar en qué fila inician los encabezados reales
+  let headerIndex = -1;
+  const palabrasClaveEncabezado = [
+    'NOMBRE',
+    'APELLIDO',
+    'RECIBO',
+    'CONSEC',
+    'CURP',
+    'BENEFICIARIO',
+    'COMUNIDAD',
+    'LOCALIDAD',
+    'FOLIO',
+    'GENERO',
+    'SEXO',
+    'PROGRAMA'
+  ];
 
-  // Detectar columnas prohibidas por la Ley de Protección de Datos Personales
-  const palabrasProhibidas = ['CURP', 'RFC', 'TELEFONO', 'CELULAR', 'CALLE', 'DOMICILIO', 'INE', 'CORREO', 'DIAGNOSTICO'];
+  for (let i = 0; i < Math.min(lineas.length, 25); i++) {
+    const tokens = lineas[i].toUpperCase().split(',');
+    let coincidencias = 0;
+    tokens.forEach((t) => {
+      if (palabrasClaveEncabezado.some((kw) => t.includes(kw))) {
+        coincidencias++;
+      }
+    });
+    if (coincidencias >= 2) {
+      headerIndex = i;
+      break;
+    }
+  }
+
+  if (headerIndex === -1) {
+    headerIndex = 0; // Fallback a la primera fila
+  }
+
+  const cabecerasRaw = lineas[headerIndex].split(',').map((h) => h.replace(/"/g, '').trim());
+
+  // 2. Detectar y aislar columnas prohibidas por la Ley de Datos Personales
+  const palabrasProhibidas = [
+    'CURP',
+    'RFC',
+    'IDENTIFICACION',
+    'TELEFONO',
+    'CELULAR',
+    'CALLE',
+    'DOMICILIO',
+    'INE',
+    'DIRECCION', // Calle en formatos municipales
+    'CP',
+    'CODIGO POSTAL',
+    'EDAD',
+    'DIAGNOSTICO'
+  ];
+
   const columnasBloqueadas = [];
+  const indicesProhibidos = new Set();
 
-  cabecerasRaw.forEach((col) => {
-    if (palabrasProhibidas.some((prohibida) => col.includes(prohibida))) {
+  cabecerasRaw.forEach((col, idx) => {
+    const colNorm = normalizarTexto(col);
+    // Si la columna dice "DIRECCION", verificar si es dirección municipal o calle
+    if (colNorm === 'DIRECCION' || colNorm === 'DIRECCION_PARTICULAR' || colNorm === 'DOMICILIO') {
+      // Si hay otra columna de dirección municipal o si tiene CP/CALLE al lado, es calle
+      columnasBloqueadas.push(col + ' (DOMICILIO PARTICULAR)');
+      indicesProhibidos.add(idx);
+      return;
+    }
+
+    if (palabrasProhibidas.some((prohibida) => colNorm.includes(prohibida))) {
       columnasBloqueadas.push(col);
+      indicesProhibidos.add(idx);
     }
   });
 
-  const nuevosProcesados = [];
-  for (let i = 1; i < lineas.length; i++) {
-    const celdas = lineas[i].split(',').map((c) => c.replace(/"/g, '').trim());
-    if (celdas.length < 4) continue;
+  // 3. Mapeo dinámico de columnas encontradas
+  let reciboIdx = -1;
+  let nombresIdx = -1;
+  let paternoIdx = -1;
+  let maternoIdx = -1;
+  let comunidadIdx = -1;
+  let comunidad2Idx = -1;
+  let generoIdx = -1;
+  let montoIdx = -1;
+  let programaIdx = -1;
+  let periodoIdx = -1;
+  let direccionMunicipalIdx = -1;
+  let tipoApoyoIdx = -1;
+  let protegidoIdx = -1;
 
-    const direccionArchivo = celdas[1] || 'DIF Municipal';
-    const dirValida =
-      DIRECCIONES.find((d) => normalizarTexto(d.nombre) === normalizarTexto(direccionArchivo))?.nombre ||
-      'DIF Municipal';
-    const prefijo = DIRECCIONES.find((d) => d.nombre === dirValida)?.prefijo || 'GEN';
+  cabecerasRaw.forEach((h, idx) => {
+    const norm = normalizarTexto(h);
+    if (indicesProhibidos.has(idx)) return;
+
+    if (norm.includes('RECIBO') || norm === 'FOLIO') reciboIdx = idx;
+    else if (norm.includes('PATERNO')) paternoIdx = idx;
+    else if (norm.includes('MATERNO')) maternoIdx = idx;
+    else if (norm.includes('NOMBRE') && !norm.includes('APELLIDO')) nombresIdx = idx;
+    else if (norm.includes('COMUNIDAD 2') || norm.includes('COLONIA')) comunidad2Idx = idx;
+    else if (norm.includes('COMUNIDAD') || norm.includes('LOCALIDAD')) comunidadIdx = idx;
+    else if (norm.includes('GENERO') || norm.includes('SEXO')) generoIdx = idx;
+    else if (norm.includes('MONTO') || norm.includes('CANTIDAD')) montoIdx = idx;
+    else if (norm.includes('PROGRAMA')) programaIdx = idx;
+    else if (norm.includes('PERIODO') || norm.includes('TRIMESTRE')) periodoIdx = idx;
+    else if (norm.includes('DEPENDENCIA') || norm.includes('DIRECCION_MUNICIPAL')) direccionMunicipalIdx = idx;
+    else if (norm.includes('TIPO')) tipoApoyoIdx = idx;
+    else if (norm.includes('PROTEGIDO') || norm.includes('SENSIBLE')) protegidoIdx = idx;
+  });
+
+  // Determinar dirección municipal por defecto
+  let dirPredeterminada = opciones.direccion || 'Atención Ciudadana';
+  const textoPrevio = lineas.slice(0, headerIndex).join(' ').toUpperCase();
+  if (textoPrevio.includes('ATENCION CIUDADANA')) dirPredeterminada = 'Atención Ciudadana';
+  else if (textoPrevio.includes('DIF')) dirPredeterminada = 'DIF Municipal';
+  else if (textoPrevio.includes('MUJER')) dirPredeterminada = 'Atención a la Mujer';
+  else if (textoPrevio.includes('DECUR')) dirPredeterminada = 'DECUR';
+  else if (textoPrevio.includes('AGROPECUARIO') || textoPrevio.includes('FOMENTO')) dirPredeterminada = 'Fomento Económico';
+  else if (textoPrevio.includes('DESARROLLO')) dirPredeterminada = 'Desarrollo Municipal';
+
+  // Determinar programa por defecto
+  let progPredeterminado = opciones.programa || 'ENTREGA DE CEMENTO';
+  if (textoPrevio.includes('CEMENTO')) progPredeterminado = 'ENTREGA DE CEMENTO';
+
+  const dirValidaObj = DIRECCIONES.find((d) => normalizarTexto(d.nombre) === normalizarTexto(dirPredeterminada)) || DIRECCIONES[2];
+  const prefijo = dirValidaObj.prefijo;
+
+  // 4. Procesar filas de datos
+  const nuevosProcesados = [];
+  for (let i = headerIndex + 1; i < lineas.length; i++) {
+    const celdas = lineas[i].split(',').map((c) => c.replace(/"/g, '').trim());
+    if (celdas.length < 3) continue;
+
+    // Extraer folio / recibo
+    const reciboRaw = reciboIdx !== -1 ? celdas[reciboIdx] : '';
+    const folio = reciboRaw
+      ? `BAL-${prefijo}-${sanitizarCeldaCSV(reciboRaw)}`
+      : `BAL-${prefijo}-CSV${String(i).padStart(3, '0')}`;
+
+    // Extraer nombres y apellidos
+    const nombres = nombresIdx !== -1 ? normalizarTexto(celdas[nombresIdx]) : 'SIN NOMBRE';
+    const apellidoPaterno = paternoIdx !== -1 ? normalizarTexto(celdas[paternoIdx]) : 'SIN APELLIDO';
+    const apellidoMaterno = maternoIdx !== -1 ? normalizarTexto(celdas[maternoIdx]) : '';
+
+    if (!nombres || nombres === 'SIN NOMBRE') continue; // Ignorar filas vacías o subtotales
+
+    // Extraer localidad/comunidad
+    const com1 = comunidadIdx !== -1 ? celdas[comunidadIdx] : '';
+    const com2 = comunidad2Idx !== -1 ? celdas[comunidad2Idx] : '';
+    const comunidadElegida = com2 && com2.trim().length > 0 ? com2 : com1;
+    const localidadLimpia = normalizarLocalidadBalancan(comunidadElegida);
+
+    // Extraer sexo
+    const generoRaw = generoIdx !== -1 ? normalizarTexto(celdas[generoIdx]) : 'M';
+    const sexo = generoRaw === 'H' || generoRaw === 'HOMBRE' ? 'H' : 'M';
+
+    // Extraer monto
+    const montoRaw = montoIdx !== -1 ? Number(celdas[montoIdx].replace(/[^0-9.]/g, '')) : 0;
+    const montoNumerico = montoRaw || (opciones.montoNumerico ?? 1800);
 
     nuevosProcesados.push({
       id: `CSV-${Date.now()}-${i}`,
-      folio: `BAL-${prefijo}-CSV${String(i).padStart(3, '0')}`,
-      periodo: sanitizarCeldaCSV(celdas[0] || '2026 - T3'),
-      direccion: dirValida,
-      programa: normalizarTexto(celdas[2] || 'PROGRAMA MUNICIPAL'),
-      apellidoPaterno: normalizarTexto(celdas[3] || 'SIN APELLIDO'),
-      apellidoMaterno: normalizarTexto(celdas[4] || ''),
-      nombres: normalizarTexto(celdas[5] || 'SIN NOMBRE'),
-      sexo: normalizarTexto(celdas[6]) === 'H' ? 'H' : 'M',
-      localidad: sanitizarCeldaCSV(celdas[7] || 'Cabecera Municipal (Balancán)'),
-      tipoApoyo: sanitizarCeldaCSV(celdas[8] || 'Especie'),
-      montoEspecie: normalizarTexto(celdas[9] || 'APOYO ENTREGADO'),
-      montoNumerico: Number(celdas[10]) || 0,
-      protegido: normalizarTexto(celdas[11]) === 'SI'
+      folio,
+      periodo: periodoIdx !== -1 && celdas[periodoIdx] ? sanitizarCeldaCSV(celdas[periodoIdx]) : (opciones.periodo || '2026 - T1'),
+      direccion: dirValidaObj.nombre,
+      programa: programaIdx !== -1 && celdas[programaIdx] ? normalizarTexto(celdas[programaIdx]) : progPredeterminado,
+      apellidoPaterno,
+      apellidoMaterno,
+      nombres,
+      sexo,
+      localidad: localidadLimpia,
+      tipoApoyo: tipoApoyoIdx !== -1 && celdas[tipoApoyoIdx] ? sanitizarCeldaCSV(celdas[tipoApoyoIdx]) : (opciones.tipoApoyo || 'Especie'),
+      montoEspecie: opciones.montoEspecie || (progPredeterminado.includes('CEMENTO') ? 'PAQUETE DE CEMENTO (10 BULTOS)' : 'APOYO ENTREGADO'),
+      montoNumerico,
+      protegido: protegidoIdx !== -1 ? normalizarTexto(celdas[protegidoIdx]) === 'SI' : false
     });
   }
 
@@ -152,65 +334,25 @@ export const analizarContenidoCSV = (texto, nombreArchivo) => {
   };
 };
 
-export const generarSimulacionCSV = () => {
-  const simulados = [
-    {
-      id: `SIM-${Date.now()}-1`,
-      folio: 'BAL-DIF-901',
-      periodo: '2026 - T3',
-      direccion: 'DIF Municipal',
-      programa: 'APOYO ALIMENTARIO DE EMERGENCIA',
-      apellidoPaterno: 'MENDEZ',
-      apellidoMaterno: 'ARIAS',
-      nombres: 'TERESA DE JESUS',
-      sexo: 'M',
-      localidad: 'Villa El Triunfo',
-      tipoApoyo: 'Especie',
-      montoEspecie: '1 PAQUETE ALIMENTARIO',
-      montoNumerico: 0,
-      protegido: false
-    },
-    {
-      id: `SIM-${Date.now()}-2`,
-      folio: 'BAL-IAM-902',
-      periodo: '2026 - T3',
-      direccion: 'Atención a la Mujer',
-      programa: 'ATENCION A MUJERES EN SITUACION DE RIESGO',
-      apellidoPaterno: 'LOPEZ',
-      apellidoMaterno: 'GOMEZ',
-      nombres: 'MARIA FERNANDA',
-      sexo: 'M',
-      localidad: 'Cabecera Municipal (Balancán)',
-      tipoApoyo: 'Económico',
-      montoEspecie: '$2,500.00 MXN',
-      montoNumerico: 2500,
-      protegido: true
-    },
-    {
-      id: `SIM-${Date.now()}-3`,
-      folio: 'BAL-AGR-903',
-      periodo: '2026 - T3',
-      direccion: 'Fomento Agropecuario',
-      programa: 'MECANIZACION AGRICOLA MUNICIPAL',
-      apellidoPaterno: 'CHAN',
-      apellidoMaterno: 'ACOSTA',
-      nombres: 'LORENZO',
-      sexo: 'H',
-      localidad: 'Poblado San Pedro',
-      tipoApoyo: 'Capacitación / Servicio',
-      montoEspecie: '2 HECTAREAS DE RASTREO AGRICOLA',
-      montoNumerico: 0,
-      protegido: false
-    }
-  ];
-
+// Generador de simulación del padrón real de Atención Ciudadana (100 beneficiarios de cemento)
+export const generarSimulacionAtencionCiudadana = () => {
   return {
     reporte: {
-      nombreArchivo: 'Padron_Enviado_Por_Direcciones_Con_CURP.csv (Simulación)',
-      totalFilas: simulados.length,
-      columnasBloqueadas: ['CURP_BENEFICIARIO', 'TELEFONO_CELULAR', 'CALLE_Y_NUMERO_EXACTO', 'DIAGNOSTICO_CLINICO'],
+      nombreArchivo: 'PADRON_ENTREGA_CEMENTO_ATENCION_CIUDADANA_2026.csv (Oficial)',
+      totalFilas: DATOS_ATENCION_CIUDADANA_CEMENTO.length,
+      columnasBloqueadas: [
+        'CURP (DISOCIADO)',
+        'NO. DE IDENTIFICACION / INE (BLOQUEADO)',
+        'DIRECCION / CALLE Y NUMERO (BLOQUEADO)',
+        'CODIGO POSTAL CP (BLOQUEADO)',
+        'EDAD (CONFIDENCIAL)'
+      ],
       sanitizadoExitoso: true
     },
-    datos: simulados
+    datos: DATOS_ATENCION_CIUDADANA_CEMENTO
   };
+};
+
+export const generarSimulacionCSV = () => {
+  return generarSimulacionAtencionCiudadana();
 };

@@ -1,4 +1,5 @@
 $ErrorActionPreference = "Stop"
+$ProgressPreference = "SilentlyContinue"
 $env:PATH = "$env:LOCALAPPDATA\Programs\nodejs;$env:PATH"
 
 Write-Host "1. Compilando aplicación React + Tailwind CSS para producción..."
