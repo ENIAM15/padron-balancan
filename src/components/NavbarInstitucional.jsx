@@ -15,15 +15,12 @@ export default function NavbarInstitucional({
       ========================================== */}
       <div className="bg-[#560b22] text-white text-xs py-1.5 px-4 border-b border-[#BC955C]/40">
         <div className="max-w-7xl mx-auto flex flex-wrap justify-between items-center gap-2">
-          <div className="flex items-center space-x-2">
+          {/*<div className="flex items-center space-x-2">
             <Landmark className="w-3.5 h-3.5 text-[#BC955C]" />
-            <span className="font-medium tracking-wide">
-              ebalancan.gob.mx — Portal Oficial de Gobierno Abierto y Transparencia Proactiva
-            </span>
-          </div>
+          </div>*/}
           <div className="flex items-center space-x-4">
             <span className="hidden sm:inline text-[#e6d5b8]">
-              Departamento de TIC | Agenda Digital Municipal
+              Departamento de TICs | Agenda Digital Municipal
             </span>
             {sesionActiva && (
               <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-semibold bg-emerald-800 text-emerald-100 border border-emerald-500/50">
